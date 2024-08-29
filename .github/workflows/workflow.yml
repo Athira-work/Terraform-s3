@@ -1,0 +1,62 @@
+name: Terraform S3 Bucket Provisioning
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      bucketName:
+        description: 'Name of the S3 bucket'
+        required: true
+        default: 'my-unique-bucket-name'
+      awsRegion:
+        description: 'AWS region to deploy resources'
+        required: true
+        default: 'us-east-1'
+      action:
+        description: 'Action to perform'
+        required: false
+        default: 'apply'
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+    env:
+      AWS_REGION: ${{ github.event.inputs.awsRegion || 'us-east-1' }}
+      BUCKET_NAME: ${{ github.event.inputs.bucketName || 'my-unique-bucket-name-backstage' }}
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up AWS CLI
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Set up Terraform
+      uses: hashicorp/setup-terraform@v2
+      with:
+        terraform_version: 1.4.0
+
+    - name: Terraform Init
+      run: terraform init
+
+    - name: Terraform Plan
+      run: |
+        terraform plan \
+          -var "aws_region=${{ env.AWS_REGION }}" \
+          -var "bucket_name=${{ env.BUCKET_NAME }}"
+
+    - name: Terraform Apply
+      if: ${{ github.event.inputs.action == 'apply' }}
+      run: |
+        terraform apply -auto-approve \
+          -var "aws_region=${{ env.AWS_REGION }}" \
+          -var "bucket_name=${{ env.BUCKET_NAME }}"
