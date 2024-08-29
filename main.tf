@@ -13,4 +13,3 @@ resource "aws_s3_bucket" "example" {
 }
 
 # Optionally, if you want to specify a bucket policy or other configurations,
-# you can add additional resources or configuration here.
